@@ -1,0 +1,931 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Visualized Git Commands</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Monoton&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF1F6; --panel:#FFFFFF; --ink:#172033; --muted:#5B6679; --line:#D6DDE7; --chip:#F3F5F9;
+  --commit:#3B5BDB; --alt:#0C8599; --remote:#7048E8;
+  --red:#C9372F; --red-soft:#FDECEA; --green:#2B8A3E; --green-soft:#E6F4EA; --amber:#B25E09; --amber-soft:#FFF1DE;
+  --term-bg:#182235; --title:#D97757; --accent-grad:var(--commit);
+  --sans:'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono:'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme:light; box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B0C1F; --panel:#16173A; --ink:#E1E4FF; --muted:#9B9DCC; --line:#2B2D5E; --chip:#1E2049;
+    --commit:#8B8CF5; --alt:#4FD1C5; --remote:#C4A7FF;
+    --red:#FF7A85; --red-soft:#3A1830; --green:#5FD99A; --green-soft:#14302D; --amber:#FFB86B; --amber-soft:#3A2818;
+    --term-bg:#06071A; --accent-grad:linear-gradient(135deg,#A193F7,#6366F1); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B0C1F; --panel:#16173A; --ink:#E1E4FF; --muted:#9B9DCC; --line:#2B2D5E; --chip:#1E2049;
+  --commit:#8B8CF5; --alt:#4FD1C5; --remote:#C4A7FF;
+  --red:#FF7A85; --red-soft:#3A1830; --green:#5FD99A; --green-soft:#14302D; --amber:#FFB86B; --amber-soft:#3A2818;
+  --term-bg:#06071A; --accent-grad:linear-gradient(135deg,#A193F7,#6366F1); color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+:root[data-theme="dark"] body{background-image:radial-gradient(circle at 0% 0%,rgba(99,102,241,.22),transparent 38%),radial-gradient(circle at 100% 100%,rgba(99,102,241,.14),transparent 42%);background-attachment:fixed}
+:root[data-theme="dark"] .controls .play{background:var(--accent-grad);border-color:transparent;color:#fff}
+:root[data-theme="dark"] .step.active .num{background:var(--accent-grad);border-color:transparent;color:#fff}
+:root[data-theme="dark"] .term{background:#FFFFFF;box-shadow:0 0 0 1px rgba(139,140,245,.35),0 10px 30px rgba(0,0,0,.35)}
+:root[data-theme="dark"] .term-bar{background:#F1F2FD;border-bottom-color:#DDE0F7;color:#3730A3}
+:root[data-theme="dark"] .term-bar .d{background:#C7CAF0}
+:root[data-theme="dark"] .term-bar #termBranch{color:#4F46E5}
+:root[data-theme="dark"] .term-body{color:#1D4ED8;scrollbar-color:#C7CAF0 transparent}
+:root[data-theme="dark"] .l-cmd{color:#1E3A8A;font-weight:600}
+:root[data-theme="dark"] .l-cmd .p{color:#4F46E5}
+:root[data-theme="dark"] .l-dim{color:#6B78B8}
+:root[data-theme="dark"] .l-red{color:#C62D42}
+:root[data-theme="dark"] .l-green{color:#15803D}
+:root[data-theme="dark"] .cursor{background:#4F46E5}
+:root[data-theme="dark"] .zone{background:color-mix(in srgb,var(--panel) 88%,transparent)}
+.site-foot{max-width:1440px;margin:0 auto;padding:18px 20px 28px;text-align:center;font-size:13.5px;color:var(--muted);border-top:1px solid var(--line)}
+.site-foot span{margin:0 8px;opacity:.6}
+.site-foot a{color:var(--title);text-decoration:none;font-weight:500}
+.site-foot a:hover{text-decoration:underline}
+@media (max-width:820px){.site-foot{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
+header{display:grid;grid-template-columns:80px 1fr 80px;align-items:center;gap:12px}
+.brand{grid-column:1;justify-self:start;font-family:'Monoton','Schibsted Grotesk',system-ui,sans-serif;font-size:clamp(1.6rem,2.6vw,2.2rem);font-weight:400;line-height:1;letter-spacing:.02em;color:#1B2A5B;user-select:none}
+:root[data-theme="dark"] .brand{color:#FF8A3D}
+header h1{grid-column:2;text-align:center}
+header .theme-btn{grid-column:3;justify-self:end}
+@media (max-width:820px){header{grid-template-columns:56px 1fr 56px}}
+h1{color:var(--title)}
+.theme-btn{flex:none;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;display:grid;place-items:center;transition:background .3s,border-color .3s,transform .2s}
+.theme-btn:hover{transform:scale(1.06)}
+.theme-btn svg{width:19px;height:19px}
+:root[data-theme="dark"] .theme-btn{background:var(--accent-grad);border-color:rgba(255,255,255,.25);color:#fff;box-shadow:0 0 0 4px rgba(139,140,245,.15)}
+
+:focus-visible{outline:2px solid var(--commit);outline-offset:2px}
+
+header{max-width:1440px;margin:0 auto;padding:28px 20px 20px}
+h1{margin:0;font-size:clamp(1.7rem,3.4vw,2.4rem);font-weight:700;letter-spacing:-.025em;line-height:1.1}
+header p{margin:8px 0 0;color:var(--muted);font-size:1rem;line-height:1.5;max-width:64ch}
+
+.layout{max-width:1440px;margin:0 auto;padding:0 20px 40px;display:grid;grid-template-columns:260px minmax(0,1fr);gap:24px;align-items:start}
+.side{position:sticky;top:calc(14px + env(safe-area-inset-top,0px));max-height:calc(100vh - 28px - env(safe-area-inset-top,0px));display:flex;flex-direction:column;min-width:0}
+.side nav{flex:1;min-height:0;overflow-y:auto;margin-top:12px;padding-right:4px;scrollbar-width:thin}
+
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.sec{padding:14px 12px 4px;font-size:12.5px;color:var(--muted);line-height:1.3}
+.sec:first-child{padding-top:2px}
+.sec b{display:block;color:var(--ink);font-size:13px;font-weight:600}
+.steps button{width:100%;display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:center;text-align:left;
+  padding:6px 10px;border-radius:9px;border:1px solid transparent;background:transparent;color:var(--muted);cursor:pointer;transition:background .2s,border-color .2s}
+.steps button:hover{background:color-mix(in srgb,var(--panel) 60%,transparent)}
+.num{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--line);font:600 10.5px var(--mono);transition:all .25s}
+.cmd{display:block;font:500 13.5px var(--mono);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmd i{font-style:normal;color:var(--muted);font-weight:400}
+.desc{display:block;font-size:12.5px;margin-top:1px}
+.step.done .num{background:var(--green-soft);color:var(--green);border-color:transparent}
+.step.active button{background:var(--panel);border-color:var(--commit);color:var(--ink)}
+.step.active .num{background:var(--commit);border-color:var(--commit);color:var(--panel)}
+
+.controls{display:flex;align-items:center;gap:8px}
+.controls button{height:40px;border-radius:20px;border:1px solid var(--line);background:var(--panel);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.controls .icon{width:40px}
+.controls .play{padding:0 18px 0 14px;background:var(--commit);border-color:var(--commit);color:var(--panel);font-weight:600;min-width:104px}
+.controls svg{width:16px;height:16px}
+.count{margin-left:auto;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.stage{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;min-width:0}
+.console{display:flex;flex-direction:column;gap:10px;min-width:0}
+.zones{display:flex;flex-direction:column;gap:12px;min-width:0}
+@media (min-width:1280px){
+  .stage{grid-template-columns:minmax(0,410px) minmax(0,1fr);gap:16px;align-items:start}
+  .console{position:sticky;top:calc(14px + env(safe-area-inset-top,0px))}
+}
+
+.term{background:var(--term-bg);border-radius:12px;overflow:hidden}
+.term-bar{display:flex;align-items:center;gap:6px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.07);color:#8793A8;font:12px var(--mono)}
+.term-bar .d{width:9px;height:9px;border-radius:50%;background:#35415A}
+.term-bar #termTitle{flex:1;text-align:center}
+.term-bar #termBranch{min-width:39px;text-align:right;color:#7FA2FF}
+.term-body{padding:12px 14px 14px;font:13px/1.6 var(--mono);color:#C9D3E3;height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;scrollbar-width:thin;scrollbar-color:#35415A transparent}
+.l-cmd{color:#EEF3FB}
+.l-cmd .p{color:#7FA2FF}
+.l-dim{color:#77849A}
+.l-red{color:#FF7D73}
+.l-green{color:#6BDB85}
+.cursor{display:inline-block;width:.55em;height:1.05em;vertical-align:-.15em;background:#7FA2FF;margin-left:1px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+.level{font-size:13px;color:var(--muted);margin:2px 2px -4px}
+.level b{color:var(--ink);font-weight:600}
+.explain{margin:0 2px;font-size:15.5px;line-height:1.55;min-height:6.2em}
+
+.zone{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px 14px;transition:opacity .35s;min-width:0}
+.zone.off{opacity:.5}
+.zone[hidden]{display:none}
+.zhead{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14.5px}
+.zhead svg{width:17px;height:17px;color:var(--muted);flex:none}
+.zhead .tag{margin-left:auto;font:12px var(--mono);color:var(--muted);font-weight:400;text-align:right}
+.gwrap{position:relative;margin-top:4px;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;min-height:150px}
+.gwrap svg{display:block}
+.empty{position:absolute;inset:0;display:flex;align-items:center;color:var(--muted);font-size:14px}
+.empty[hidden]{display:none}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pair.solo{grid-template-columns:1fr}
+.chips{display:flex;flex-wrap:wrap;gap:8px;min-height:38px;align-items:center;margin-top:10px}
+.hint{color:var(--muted);font-size:14px}
+
+.chip{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--chip);color:var(--ink);
+  font:13px var(--mono);transition:background .35s,color .35s,border-color .35s,opacity .3s,transform .3s;white-space:nowrap}
+.chip svg{width:14px;height:14px;opacity:.7;flex:none}
+.badge{font:600 10.5px var(--mono);padding:1px 5px;border-radius:4px;color:var(--panel)}
+.badge:empty{display:none}
+.chip.c-red{background:var(--red-soft);border-color:var(--red);color:var(--red)}
+.chip.c-red .badge{background:var(--red)}
+.chip.c-green{background:var(--green-soft);border-color:var(--green);color:var(--green)}
+.chip.c-green .badge{background:var(--green)}
+.chip.c-amber{background:var(--amber-soft);border-color:var(--amber);color:var(--amber)}
+.chip.c-amber .badge{background:var(--amber)}
+.chip.c-ign{opacity:.6;border-style:dashed;color:var(--muted)}
+.chip.c-ign .badge{background:transparent;color:var(--muted);font-weight:400;padding:0}
+.chip.leaving{opacity:0;transform:scale(.85)}
+
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:12.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;border:1px solid var(--line);background:var(--chip)}
+.legend i.r{background:var(--red-soft);border-color:var(--red)}
+.legend i.g{background:var(--green-soft);border-color:var(--green)}
+.legend i.i{border-style:dashed;opacity:.7}
+.legend i.a{background:var(--amber-soft);border-color:var(--amber)}
+
+.node{transition:transform .5s cubic-bezier(.4,0,.2,1)}
+.node .dot{fill:var(--commit);stroke:var(--panel);stroke-width:3;transform-box:fill-box;transform-origin:center}
+.node.alt .dot{fill:var(--alt)}
+.g-remote .node .dot{fill:var(--remote)}
+.node.orphan .dot{fill:var(--panel);stroke:var(--muted);stroke-width:2;stroke-dmeerarray:3 3}
+.node .ring{fill:none;stroke-width:2.5;opacity:0;transition:opacity .3s}
+.node.m-hl .ring{opacity:1;stroke:var(--ink)}
+.node.m-good .ring{opacity:1;stroke:var(--green)}
+.node.m-bad .ring{opacity:1;stroke:var(--red)}
+.node.m-test .ring{opacity:1;stroke:var(--amber);stroke-dmeerarray:4 3}
+.edge{fill:none;stroke:var(--commit);stroke-width:3;stroke-linecap:round;transition:d .5s cubic-bezier(.4,0,.2,1)}
+.edge.alt{stroke:var(--alt)}
+.g-remote .edge{stroke:var(--remote)}
+.edge.orphan{stroke:var(--muted);stroke-width:2;stroke-dmeerarray:4 4}
+.ref{transition:transform .55s cubic-bezier(.4,0,.2,1),opacity .3s}
+.ref rect{fill:var(--commit)}
+.ref text{fill:var(--panel);font-family:var(--mono);font-size:11px;font-weight:600}
+.ref.alt rect{fill:var(--alt)}
+.g-remote .ref.br rect{fill:var(--remote)}
+.ref.head rect{fill:var(--ink)}
+.ref.rt rect{fill:var(--panel);stroke:var(--remote);stroke-width:1.5;stroke-dmeerarray:3 2}
+.ref.rt text{fill:var(--remote)}
+.ref.tag rect{fill:var(--amber-soft);stroke:var(--amber);stroke-width:1.5}
+.ref.tag text{fill:var(--amber)}
+.gone{opacity:0 !important;transition:opacity .3s}
+.pending{opacity:0 !important}
+.chip.land{animation:land .5s cubic-bezier(.2,.9,.3,1.25)}
+.node.land .dot{animation:pop .5s cubic-bezier(.2,.9,.3,1.4)}
+.ref.land,.edge.land{animation:fade .45s ease-out}
+.chip.flash{animation:flash .7s ease-out}
+@keyframes land{from{opacity:0;transform:scale(.6)}}
+@keyframes pop{from{transform:scale(0)}}
+@keyframes fade{from{opacity:0}}
+@keyframes flash{0%{box-shadow:0 0 0 0 currentColor}100%{box-shadow:0 0 0 7px transparent}}
+
+.flyer{position:fixed;z-index:50;pointer-events:none;left:0;top:0}
+.flyer span{display:block;transform:translate(-50%,-50%);padding:4px 9px;border-radius:999px;font:600 12px var(--mono);color:var(--panel);box-shadow:0 6px 18px rgba(0,0,0,.22);white-space:nowrap}
+.f-green span{background:var(--green)}
+.f-commit span{background:var(--commit)}
+.f-remote span{background:var(--remote)}
+.f-amber span{background:var(--amber)}
+
+@media (max-width:820px){
+  header{padding:22px 16px 14px}
+  .layout{grid-template-columns:minmax(0,1fr);gap:12px;padding:0 16px 20px}
+  .side{position:static;max-height:none;min-width:0}
+  .side nav{margin:0;overflow-x:auto;overflow-y:hidden;padding:0 0 6px;scrollbar-width:none}
+  .side nav::-webkit-scrollbar{display:none}
+  .steps{flex-direction:row;gap:6px;width:max-content;align-items:stretch}
+  .sec{display:flex;align-items:center;padding:0 4px 0 10px;white-space:nowrap}
+  .sec:first-child{padding-left:0}
+  .sec b{display:inline;margin-right:4px}
+  .sec span{display:none}
+  .steps button{grid-template-columns:24px auto;gap:8px;padding:7px 12px 7px 7px;border-color:var(--line);background:var(--panel);height:100%}
+  .desc{display:none}
+  .controls{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--panel);border-top:1px solid var(--line);
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));order:2}
+  .term-body{font-size:12px;height:220px}
+  .explain{font-size:15px;min-height:0}
+  .pair{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion: reduce){ *{animation:none !important;transition:none !important} }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand" role="img" aria-label="GK">GK</span>
+  <h1>Visualized Git Commands</h1>
+  <button class="theme-btn" id="themeBtn" aria-label="Switch to dark theme"></button>
+</header>
+
+<main class="layout">
+  <div class="side">
+    <div class="controls">
+      <button class="icon" id="prevBtn" aria-label="Previous command"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button class="play" id="playBtn"><svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"></svg><span id="playLabel">Play</span></button>
+      <button class="icon" id="nextBtn" aria-label="Next command"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+      <span class="count" id="count"></span>
+    </div>
+    <nav aria-label="Git commands" id="nav"><ol class="steps" id="stepList"></ol></nav>
+  </div>
+
+  <section class="stage" aria-label="Visualization">
+    <div class="console">
+      <div class="term">
+        <div class="term-bar"><span class="d"></span><span class="d"></span><span class="d"></span><span id="termTitle">Terminal</span><span id="termBranch"></span></div>
+        <div class="term-body" id="term"></div>
+      </div>
+      <p class="level" id="level"></p>
+      <p class="explain" id="explain" aria-live="polite"></p>
+    </div>
+
+    <div class="zones">
+      <div class="zone" id="zRemote">
+        <div class="zhead">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 0 0 .5-8.97A6 6 0 0 0 6.34 9.5 4.75 4.75 0 0 0 6.5 19z"/></svg>
+          GitHub (remote)<span class="tag" id="remoteTag"></span>
+        </div>
+        <div class="gwrap" id="wRemote"><svg id="gRemote" class="g-remote" aria-hidden="true"></svg><div class="empty" id="remoteEmpty"></div></div>
+      </div>
+
+      <div class="zone" id="zLocal">
+        <div class="zhead">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M2 12h6.5M15.5 12H22"/></svg>
+          Local repository<span class="tag" id="localTag"></span>
+        </div>
+        <div class="gwrap" id="wLocal"><svg id="gLocal" class="g-local" aria-hidden="true"></svg><div class="empty" id="localEmpty"></div></div>
+      </div>
+
+      <div class="pair solo" id="pair">
+        <div class="zone" id="zStage">
+          <div class="zhead">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+            Staging area
+          </div>
+          <div class="chips" id="stageChips"></div>
+        </div>
+        <div class="zone" id="zStash" hidden>
+          <div class="zhead">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4"/></svg>
+            Stash
+          </div>
+          <div class="chips" id="stashChips"></div>
+        </div>
+      </div>
+
+      <div class="zone" id="zWd">
+        <div class="zhead">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          Working directory<span class="tag" id="wdTag">~/app</span>
+        </div>
+        <div class="chips" id="wdChips"></div>
+        <div class="legend"><span><i class="r"></i>Untracked or modified</span><span><i class="g"></i>Staged</span><span><i class="a"></i>Conflict</span><span><i></i>Committed</span><span><i class="i"></i>Ignored</span></div>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="site-foot">Built by Gopikrishna <span aria-hidden="true">|</span> <a href="mailto:gkrishna.ai.lab@gmail.com">gkrishna.ai.lab@gmail.com</a></footer>
+
+<script>
+(() => {
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+/* ---------- Theme ---------- */
+const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
+const MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z"/></svg>';
+function applyTheme(t){
+  document.documentElement.dataset.theme = t;
+  const b = $('themeBtn');
+  b.innerHTML = t === 'dark' ? SUN : MOON;
+  b.setAttribute('aria-label', t === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+}
+let theme = 'light';
+applyTheme(theme);
+$('themeBtn').addEventListener('click', () => {
+  theme = theme === 'dark' ? 'light' : 'dark'; applyTheme(theme);
+});
+
+const FILES = ['README.md','.gitignore','app.py','utils.py','requirements.txt','notes.txt','docs/notes.txt','old_script.py','auth.py','logout.py','scratch.py','temp.csv','.env','__pycache__/'];
+const FILE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></svg>';
+const URL_ = 'https://github.com/meera/app.git';
+
+/* ================= Commit catalog ================= */
+const K = {
+ C1:{col:1,lane:0,p:[],h:'a1f3c2e',m:'First commit'},
+ C2:{col:2,lane:0,p:['C1'],h:'c5d81b0',m:'Add search'},
+ C3:{col:3,lane:0,p:['C2'],h:'e20f4a7',m:'Tidy up files'},
+ C4:{col:4,lane:0,p:['C3'],h:'b7d9e41',m:'Add README (Maara)'},
+ C5:{col:5,lane:1,p:['C4'],h:'c4e8a90',m:'Add login'},
+ C6:{col:6,lane:0,p:['C4'],h:'3fa0c62',m:'Fix typo in README (Maara)'},
+ M1:{col:7,lane:0,p:['C6','C5'],h:'4e0d9c1',m:"Merge branch 'login'"},
+ C7:{col:8,lane:0,p:['M1'],h:'61aa0b8',m:'Update README'},
+ C8:{col:9,lane:1,p:['M1'],h:'2c9d7e3',m:'Reword README (Maara)'},
+ M2:{col:10,lane:0,p:['C7','C8'],h:'8f1e0a4',m:'Merge origin/main'},
+ C9:{col:11,lane:0,p:['M2'],h:'b3e71d9',m:'Add pagination (Maara)'},
+ C10:{col:12,lane:0,p:['C9'],h:'d2b7c55',m:'Add rate limit'},
+ D1:{col:12.4,lane:1,p:['C10'],h:'0c7a1e2',m:'Dark mode styles'},
+ D2:{col:12.7,lane:1,p:['D1'],h:'e8f3d44',m:'Fix header overflow'},
+ C11:{col:13,lane:0,p:['C10'],h:'9b0e3f6',m:'Add logut'},
+ C11b:{col:13,lane:0,p:['C10'],h:'a9c4e12',m:'Add logout'},
+ C12:{col:14,lane:0,p:['C10'],h:'5e8a3f1',m:'Revert "Add rate limit"'},
+ D1b:{col:15,lane:1,p:['C12'],h:'3c1a9f0',m:'Dark mode styles'},
+ D2b:{col:16,lane:1,p:['D1b'],h:'9e2b6d1',m:'Fix header overflow'}
+};
+const add = (repo, ...ids) => ids.forEach(id => repo.commits[id] = {id, ...K[id]});
+const del = (repo, ...ids) => ids.forEach(id => delete repo.commits[id]);
+
+/* ================= Story builder ================= */
+const START = ['app.py','utils.py','requirements.txt','notes.txt','old_script.py','.env','__pycache__/'];
+let S = {user:null, local:null, remote:null, stage:[], wd:Object.fromEntries(START.map(f => [f,'plain'])), stash:undefined, marks:{local:{},remote:{}}};
+const S0 = structuredClone(S);
+const STEPS = []; let SEC = null;
+const sec = (level, title) => { SEC = {level, title, first: true}; };
+function step(name, short, explain, phases){
+  S.marks = {local:{}, remote:{}};
+  const section = SEC; const first = SEC.first; SEC.first = false;
+  phases.forEach(p => { if(p.do) p.do(S); p.state = structuredClone(S); });
+  STEPS.push({name, short, explain, section, first, phases});
+}
+const T = (files, st) => files.forEach(f => S.wd[f] = st);
+const stageAdd = (f, st) => { S.stage = S.stage.filter(x => x[0] !== f).concat([[f, st]]); };
+const TRACK = ['.gitignore','app.py','utils.py','requirements.txt','notes.txt','old_script.py'];
+const pushOut = (a,b) => ['out',`   ${K[a].h}..${K[b].h}  main -> main`];
+const toMain = s => { if(s.local.refs.master){ s.local.refs.main = s.local.refs.master; delete s.local.refs.master; } s.local.head = 'main'; };
+
+/* ---------- Beginner: set up and save ---------- */
+sec('Beginner','Set up and save your work');
+step('--version','Check Git is installed',
+ "Checks that Git is installed and shows its version. If your terminal says the command isn't found, install Git from git-scm.com first.",
+ [{lines:[['cmd','git --version'],['out','git version 2.46.0']]}]);
+
+step('config','Introduce yourself',
+ "Tells Git who you are. Every commit is stamped with this name and email. --global applies it to all your projects, so you do it once per computer. git config --list shows every setting.",
+ [{do:s => { s.user = 'meera'; }, lines:[['cmd','git config --global user.name "Meera"'],['cmd','git config --global user.email "meera@gk-ai-lab.com"'],['cmd','git config --list'],['out','user.name=Meera'],['out','user.email=meera@gk-ai-lab.com'],['out','core.editor=code --wait']]}]);
+
+step('init','Start a repo',
+ "Turns the current folder into a Git repository by adding a hidden .git folder. Nothing is tracked yet. Depending on your settings, the first branch is called master or main.",
+ [{do:s => { s.local = {commits:{}, refs:{}, rrefs:{}, tags:{}, head:'master'}; }, lines:[['cmd','git init'],['dim',"hint: Using 'master' as the name for the initial branch."],['out','Initialized empty Git repository in ~/app/.git/']]}]);
+
+step('status','See what changed',
+ "Asks Git what's going on. Everything is red because Git sees the files but isn't tracking them yet, including .env (your secret keys) and __pycache__/ (Python junk). You'll run git status constantly.",
+ [{do:() => T(START,'untracked'), lines:[['cmd','git status'],['out','On branch master'],['out','No commits yet'],['out','Untracked files:'],['red','        .env'],['red','        __pycache__/'],['red','        app.py'],['red','        notes.txt'],['red','        old_script.py'],['red','        requirements.txt'],['red','        utils.py']]}]);
+
+step('.gitignore','Skip files you never want',
+ "A plain text file listing what Git should never track, like secrets (.env) and generated files (__pycache__/). They disappear from git status, so you can't commit them by accident. Create it before your first commit.",
+ [{do:s => { s.wd['.gitignore'] = 'untracked'; T(['.env','__pycache__/'],'ignored'); }, lines:[['dim','# create a file named .gitignore containing:'],['out','.env'],['out','__pycache__/']]},
+  {lines:[['cmd','git status --short'],['red','?? .gitignore'],['red','?? app.py'],['red','?? notes.txt'],['red','?? old_script.py'],['red','?? requirements.txt'],['red','?? utils.py']]}]);
+
+step('add','Stage changes',
+ "Copies files into the staging area, which holds exactly what your next commit will contain. Stage one file, several at once, or everything. git add . covers the current folder and below; git add -A covers the whole repository.",
+ [{do:() => { T(['app.py'],'added'); stageAdd('app.py','added'); }, fx:[{from:'wd:app.py', to:'stage:app.py', label:'app.py', cls:'f-green'}],
+   lines:[['dim','# a single file'],['cmd','git add app.py']]},
+  {do:() => { ['utils.py','requirements.txt'].forEach(f => { T([f],'added'); stageAdd(f,'added'); }); },
+   fx:['utils.py','requirements.txt'].map(f => ({from:'wd:'+f, to:'stage:'+f, label:f, cls:'f-green'})),
+   lines:[['dim','# several files'],['cmd','git add utils.py requirements.txt']]},
+  {do:() => { ['.gitignore','notes.txt','old_script.py'].forEach(f => { T([f],'added'); stageAdd(f,'added'); }); },
+   fx:['.gitignore','notes.txt','old_script.py'].map(f => ({from:'wd:'+f, to:'stage:'+f, label:f, cls:'f-green'})),
+   lines:[['dim','# everything that changed'],['cmd','git add .'],['dim','# or: git add -A']]}]);
+
+step('commit','Save a snapshot',
+ "Saves everything in the staging area as a permanent snapshot in your local repo, with a message saying why. The branch label and HEAD (where you are now) point at this commit.",
+ [{do:s => { add(s.local,'C1'); s.local.refs.master = 'C1'; s.stage = []; T(TRACK,'clean'); },
+   fx:TRACK.map(f => ({from:'stage:'+f, to:'local:C1', label:f, cls:'f-green'})),
+   lines:[['cmd','git commit -m "First commit"'],['out','[master (root-commit) a1f3c2e] First commit'],['out',' 6 files changed, 58 insertions(+)']]}]);
+
+step('diff','Compare changes',
+ "You edit two files. git diff shows your unstaged changes line by line: green lines added, red removed. After staging app.py, git diff --staged shows what's in the staging area, meaning exactly what your next commit would contain.",
+ [{do:() => T(['app.py','utils.py'],'modified'), lines:[['dim','# edit app.py and utils.py in your editor']]},
+  {lines:[['cmd','git diff'],['out','--- a/app.py'],['out','+++ b/app.py'],['green','+def search(query):'],['green','+    return [r for r in rows if query in r]'],['out','--- a/utils.py'],['out','+++ b/utils.py'],['red','-BASE_URL = "/v1"'],['green','+BASE_URL = "/v2"']]},
+  {do:() => { T(['app.py'],'staged-m'); stageAdd('app.py','staged-m'); }, fx:[{from:'wd:app.py', to:'stage:app.py', label:'app.py', cls:'f-green'}],
+   lines:[['cmd','git add app.py'],['cmd','git diff --staged'],['out','+++ b/app.py'],['green','+def search(query):'],['green','+    return [r for r in rows if query in r]']]}]);
+
+step('restore','Discard or unstage',
+ "git restore utils.py throws away your uncommitted edits and brings back the last committed version (careful: they're gone for good). git restore --staged app.py only unstages it: the edit stays in your file but won't go into the next commit.",
+ [{do:() => T(['utils.py'],'clean'), lines:[['cmd','git restore utils.py']]},
+  {do:s => { s.stage = []; T(['app.py'],'modified'); }, lines:[['cmd','git restore --staged app.py'],['cmd','git status --short'],['red',' M app.py']]}]);
+
+step('log','View history',
+ "After committing the search feature, git log lists your history, newest first. Each commit has a short ID (its hash) that you can use in other commands.",
+ [{do:s => { add(s.local,'C2'); s.local.refs.master = 'C2'; T(['app.py'],'clean'); }, fx:[{from:'wd:app.py', to:'local:C2', label:'app.py', cls:'f-green'}],
+   lines:[['dim','# save the search feature'],['cmd','git add app.py'],['cmd','git commit -m "Add search"'],['@'],['out','[master c5d81b0] Add search']]},
+  {do:s => { s.marks.local = {C1:'hl', C2:'hl'}; }, lines:[['cmd','git log --oneline'],['out','c5d81b0 (HEAD -> master) Add search'],['out','a1f3c2e First commit']]}]);
+
+step('show','Inspect a commit',
+ "Shows one commit in full: who made it, when, the message, and exactly what changed. Give it any commit ID from git log, or no ID for the latest commit.",
+ [{do:s => { s.marks.local = {C2:'hl'}; }, lines:[['cmd','git show c5d81b0'],['out','commit c5d81b0'],['out','Author: Meera <meera@gk-ai-lab.com>'],['out','Date:   Mon Sep 21 10:24 2026'],['out',''],['out','    Add search'],['out',''],['out','+++ b/app.py'],['green','+def search(query):'],['green','+    return [r for r in rows if query in r]']]}]);
+
+/* ---------- Beginner: manage files ---------- */
+sec('Beginner','Manage files');
+step('mv','Move or rename',
+ "Moves or renames a file and stages the change in one go, so Git records it as a move instead of a deletion plus a new file.",
+ [{do:s => { delete s.wd['notes.txt']; s.wd['docs/notes.txt'] = 'renamed'; stageAdd('docs/notes.txt','renamed'); },
+   lines:[['cmd','git mv notes.txt docs/notes.txt'],['cmd','git status --short'],['green','R  notes.txt -> docs/notes.txt']]}]);
+
+step('rm','Delete a file',
+ "Deletes a file and stages the deletion, ready to commit. Use git rm -r folder/ for a directory, or git rm --cached file to stop tracking a file but keep it on disk (useful if you forgot to .gitignore it).",
+ [{do:s => { delete s.wd['old_script.py']; stageAdd('old_script.py','deleted'); }, lines:[['cmd','git rm old_script.py'],['out',"rm 'old_script.py'"]]},
+  {do:s => { add(s.local,'C3'); s.local.refs.master = 'C3'; s.stage = []; s.wd['docs/notes.txt'] = 'clean'; },
+   fx:[{from:'stage:docs/notes.txt', to:'local:C3', label:'docs/notes.txt', cls:'f-green'},{from:'stage:old_script.py', to:'local:C3', label:'old_script.py', cls:'f-green'}],
+   lines:[['cmd','git commit -m "Tidy up files"'],['out','[master e20f4a7] Tidy up files'],['out',' rename notes.txt => docs/notes.txt (100%)'],['out',' delete mode 100644 old_script.py']]}]);
+
+step('clean','Remove untracked files',
+ "Deletes untracked files, with no undo. Always dry-run with -n first to see what would go, then use -f to actually delete. Add -d to include folders. Ignored files like .env are left alone.",
+ [{do:() => T(['scratch.py','temp.csv'],'untracked'), lines:[['dim','# some scratch files have piled up']]},
+  {lines:[['cmd','git clean -n'],['out','Would remove scratch.py'],['out','Would remove temp.csv']]},
+  {do:s => { delete s.wd['scratch.py']; delete s.wd['temp.csv']; }, lines:[['cmd','git clean -f'],['out','Removing scratch.py'],['out','Removing temp.csv']]}]);
+
+/* ---------- Beginner: share ---------- */
+sec('Beginner','Share your work on GitHub');
+step('branch -M','Rename to main',
+ "Older Git versions call the first branch master, while GitHub uses main. git branch -M main renames your current branch. (Set init.defaultBranch to main in git config to skip this in future.)",
+ [{do:s => toMain(s), lines:[['cmd','git branch -M main'],['cmd','git branch'],['green','* main']]}]);
+
+step('remote','Connect to GitHub',
+ "git remote add saves the address of your GitHub repo under the nickname origin. git remote -v lists your remotes. Made a typo, renamed the repo, or switched to SSH? git remote set-url points origin at the new address.",
+ [{do:s => { s.remote = {commits:{}, refs:{}, tags:{}}; }, lines:[['cmd','git remote add origin https://github.com/meera/ap.git'],['cmd','git remote -v'],['out','origin  https://github.com/meera/ap.git (fetch)'],['out','origin  https://github.com/meera/ap.git (push)']]},
+  {lines:[['dim','# typo in the URL, fix it:'],['cmd','git remote set-url origin '+URL_],['cmd','git remote -v'],['out','origin  '+URL_+' (fetch)'],['out','origin  '+URL_+' (push)']]}]);
+
+step('push','Upload commits',
+ "Uploads your commits to GitHub. -u links your main to origin/main, so later a plain git push or git pull knows where to go. The dashed origin/main label is your repo's memory of where GitHub's main is.",
+ [{do:s => { add(s.remote,'C1','C2','C3'); s.remote.refs.main = 'C3'; s.local.rrefs['origin/main'] = 'C3'; },
+   fx:['C1','C2','C3'].map(c => ({from:'local:'+c, to:'remote:'+c, label:K[c].h, cls:'f-commit'})),
+   lines:[['cmd','git push -u origin main'],['out','To '+URL_],['out',' * [new branch]      main -> main'],['out',"branch 'main' set up to track 'origin/main'."]]}]);
+
+step('clone','Copy a repo',
+ "This is how a teammate joins. Maara runs git clone, which downloads the whole repo with every commit and sets up origin for him. Use clone to start from an existing project, init to start a new one.",
+ [{do:s => { s.remote.note = 'Maara has a clone'; s.marks.remote = {C1:'hl',C2:'hl',C3:'hl'}; },
+   lines:[['dim',"# on Maara's laptop:"],['cmd','git clone '+URL_],['out',"Cloning into 'app'..."],['out','Receiving objects: 100% (12/12), done.']]}]);
+
+step('pull','Download commits',
+ "Maara added a README and pushed it. git pull downloads new commits and updates your branch and files to match. Pull before you start work so you build on the latest version.",
+ [{do:s => { add(s.remote,'C4'); s.remote.refs.main = 'C4'; }, lines:[['dim','# Maara adds a README and pushes it']]},
+  {do:s => { add(s.local,'C4'); s.local.refs.main = 'C4'; s.local.rrefs['origin/main'] = 'C4'; s.wd['README.md'] = 'clean'; },
+   fx:[{from:'remote:C4', to:'local:C4', label:K.C4.h, cls:'f-remote'},{from:'remote:C4', to:'wd:README.md', label:'README.md', cls:'f-remote'}],
+   lines:[['cmd','git pull'],['out','Updating e20f4a7..b7d9e41'],['out','Fast-forward'],['green',' README.md | 12 ++++++++++++']]}]);
+
+/* ---------- Intermediate: branches ---------- */
+sec('Intermediate','Branches and teamwork');
+step('branch','Make a branch',
+ "Creates a new branch: a movable label pointing at the current commit. Branches let you build a feature without disturbing main. git branch on its own lists branches; the * marks the one you're on.",
+ [{do:s => { s.local.refs.login = 'C4'; }, lines:[['cmd','git branch login'],['cmd','git branch'],['out','  login'],['green','* main']]}]);
+
+step('switch','Change branch',
+ "git switch login moves HEAD there, so new commits land on login while main stays put. git switch main takes you back, and auth.py disappears because main doesn't have it yet. git switch -c name creates and switches in one step; older guides use git checkout.",
+ [{do:s => { s.local.head = 'login'; }, lines:[['cmd','git switch login'],['out',"Switched to branch 'login'"]]},
+  {do:s => { add(s.local,'C5'); s.local.refs.login = 'C5'; s.wd['auth.py'] = 'clean'; },
+   lines:[['dim','# build the login feature'],['cmd','git add auth.py'],['cmd','git commit -m "Add login"'],['@'],['out','[login c4e8a90] Add login']]},
+  {do:s => { s.local.head = 'main'; delete s.wd['auth.py']; }, lines:[['cmd','git switch main'],['out',"Switched to branch 'main'"]]}]);
+
+step('merge','Join branches',
+ "After pulling Maara's fix, main and login have both moved on, so git merge creates a merge commit with two parents that joins them, and auth.py arrives on main. Then you push, and delete the finished branch with git branch -d.",
+ [{do:s => { add(s.remote,'C6'); s.remote.refs.main = 'C6'; }, lines:[['dim','# meanwhile Maara pushes a typo fix']]},
+  {do:s => { add(s.local,'C6'); s.local.refs.main = 'C6'; s.local.rrefs['origin/main'] = 'C6'; },
+   fx:[{from:'remote:C6', to:'local:C6', label:K.C6.h, cls:'f-remote'}], lines:[['cmd','git pull'],['out','Fast-forward']]},
+  {do:s => { add(s.local,'M1'); s.local.refs.main = 'M1'; s.wd['auth.py'] = 'clean'; },
+   lines:[['cmd','git merge login'],['out',"Merge made by the 'ort' strategy."],['green',' auth.py | 18 ++++++++++++++++++']]},
+  {do:s => { add(s.remote,'C5','M1'); s.remote.refs.main = 'M1'; s.local.rrefs['origin/main'] = 'M1'; },
+   fx:[{from:'local:M1', to:'remote:M1', label:K.M1.h, cls:'f-commit'}], lines:[['cmd','git push'],pushOut('C6','M1')]},
+  {do:s => { delete s.local.refs.login; }, lines:[['cmd','git branch -d login'],['out','Deleted branch login (was c4e8a90).']]}]);
+
+step('pull','Fix a merge conflict',
+ "You and Maara changed the same line, so Git can't merge automatically. It marks both versions inside README.md. You keep the right text, delete the markers, git add the file to mark it resolved, and commit to finish.",
+ [{do:s => { add(s.local,'C7'); s.local.refs.main = 'C7'; add(s.remote,'C8'); s.remote.refs.main = 'C8'; },
+   lines:[['dim','# you and Maara both edit the same line of README.md'],['cmd','git commit -am "Update README"'],['@'],['out','[main 61aa0b8] Update README']]},
+  {do:s => { add(s.local,'C8'); s.local.rrefs['origin/main'] = 'C8'; s.wd['README.md'] = 'conflict'; s.local.note = 'merging'; },
+   fx:[{from:'remote:C8', to:'local:C8', label:K.C8.h, cls:'f-remote'}],
+   lines:[['cmd','git pull'],['out','Auto-merging README.md'],['red','CONFLICT (content): Merge conflict in README.md'],['out','Automatic merge failed; fix conflicts and then commit.']]},
+  {lines:[['dim','# README.md now contains both versions:'],['out','<<<<<<< HEAD'],['out','A fast search app.'],['out','======='],['out','A fast, simple search app.'],['out','>>>>>>> origin/main']]},
+  {do:s => { s.wd['README.md'] = 'staged-m'; s.stage = [['README.md','staged-m']]; }, fx:[{from:'wd:README.md', to:'stage:README.md', label:'README.md', cls:'f-green'}],
+   lines:[['dim','# keep one version, delete the markers, then:'],['cmd','git add README.md']]},
+  {do:s => { add(s.local,'M2'); s.local.refs.main = 'M2'; s.stage = []; s.wd['README.md'] = 'clean'; delete s.local.note; },
+   fx:[{from:'stage:README.md', to:'local:M2', label:'README.md', cls:'f-green'}],
+   lines:[['cmd','git commit -m "Merge origin/main"'],['out','[main 8f1e0a4] Merge origin/main']]},
+  {do:s => { add(s.remote,'C7','M2'); s.remote.refs.main = 'M2'; s.local.rrefs['origin/main'] = 'M2'; },
+   fx:[{from:'local:M2', to:'remote:M2', label:K.M2.h, cls:'f-commit'}], lines:[['cmd','git push'],pushOut('C8','M2')]}]);
+
+step('fetch','Check for updates',
+ "Downloads new commits without touching your branch or files; only origin/main moves. You can look at what arrived before merging it in. In fact, git pull is just git fetch followed by git merge.",
+ [{do:s => { add(s.remote,'C9'); s.remote.refs.main = 'C9'; }, lines:[['dim','# Maara pushes pagination']]},
+  {do:s => { add(s.local,'C9'); s.local.rrefs['origin/main'] = 'C9'; }, fx:[{from:'remote:C9', to:'local:C9', label:K.C9.h, cls:'f-remote'}],
+   lines:[['cmd','git fetch'],['out','   8f1e0a4..b3e71d9  main       -> origin/main'],['cmd','git status'],['out',"Your branch is behind 'origin/main' by 1 commit."]]},
+  {do:s => { s.local.refs.main = 'C9'; }, lines:[['cmd','git merge origin/main'],['out','Updating 8f1e0a4..b3e71d9'],['out','Fast-forward']]}]);
+
+/* ---------- Intermediate: everyday ---------- */
+sec('Intermediate','Everyday workflow');
+step('stash','Set work aside',
+ "You're halfway through editing utils.py when something urgent comes up. git stash tucks your unfinished changes away and gives you a clean working directory. git stash list shows everything you've stashed.",
+ [{do:() => T(['utils.py'],'modified'), lines:[['dim','# halfway through editing utils.py, an urgent review comes in']]},
+  {do:s => { s.stash = [['0','stash','stash@{0} utils.py']]; T(['utils.py'],'clean'); }, fx:[{from:'wd:utils.py', to:'stash:0', label:'utils.py', cls:'f-amber'}],
+   lines:[['cmd','git stash'],['out','Saved working directory and index state WIP on main: b3e71d9'],['cmd','git stash list'],['out','stash@{0}: WIP on main: b3e71d9 Add pagination']]}]);
+
+step('stash apply','Bring work back',
+ "git stash apply brings the changes back but keeps a copy in the stash; git stash drop then deletes that copy. git stash pop does both in one step. Then you finish, commit, and push.",
+ [{do:() => T(['utils.py'],'modified'), fx:[{from:'stash:0', to:'wd:utils.py', label:'utils.py', cls:'f-amber'}],
+   lines:[['dim','# review done, back to your own work'],['cmd','git stash apply'],['red','        modified:   utils.py']]},
+  {do:s => { s.stash = []; }, lines:[['cmd','git stash drop'],['out','Dropped stash@{0} (1f6e2a9)'],['dim','# git stash pop = apply + drop']]},
+  {do:s => { add(s.local,'C10'); s.local.refs.main = 'C10'; T(['utils.py'],'clean'); }, fx:[{from:'wd:utils.py', to:'local:C10', label:'utils.py', cls:'f-green'}],
+   lines:[['cmd','git commit -am "Add rate limit"'],['out','[main d2b7c55] Add rate limit']]},
+  {do:s => { add(s.remote,'C10'); s.remote.refs.main = 'C10'; s.local.rrefs['origin/main'] = 'C10'; },
+   fx:[{from:'local:C10', to:'remote:C10', label:K.C10.h, cls:'f-commit'}], lines:[['cmd','git push'],pushOut('C9','C10')]}]);
+
+step('tag','Mark a release',
+ "Tags mark a specific commit permanently, usually a release. Unlike a branch, a tag never moves. git tag lists your tags. They aren't pushed automatically, so push them by name (or all at once with --tags).",
+ [{do:s => { s.local.tags['v1.0'] = 'C10'; }, lines:[['cmd','git tag -a v1.0 -m "First release"'],['cmd','git tag'],['out','v1.0']]},
+  {do:s => { s.remote.tags['v1.0'] = 'C10'; }, lines:[['cmd','git push origin v1.0'],['out',' * [new tag]         v1.0 -> v1.0']]}]);
+
+step('blame','Who changed a line',
+ "Shows who last changed each line of a file, and in which commit. Despite the name, it's for finding the context behind code (and who to ask about it).",
+ [{do:s => { s.marks.local = {C1:'hl', C2:'hl', C9:'hl'}; },
+   lines:[['cmd','git blame app.py'],['out','a1f3c2e (Meera 2026-09-01 1) from utils import fetch'],['out','c5d81b0 (Meera 2026-09-21 2) def search(query):'],['out','c5d81b0 (Meera 2026-09-21 3)     return [r for r in rows if query in r]'],['out','b3e71d9 (Maara 2026-09-24 4) def paginate(rows, n=20):'],['out','b3e71d9 (Maara 2026-09-24 5)     return rows[:n]']]}]);
+
+/* ---------- Advanced: undo & rewrite ---------- */
+sec('Advanced','Undo and rewrite history');
+step('commit --amend','Fix the last commit',
+ "Oops, a typo in the message. --amend replaces your last commit with a corrected one (you can also add forgotten files). It gets a new ID, so only amend commits you haven't pushed yet.",
+ [{do:s => { add(s.local,'C11'); s.local.refs.main = 'C11'; s.wd['logout.py'] = 'clean'; },
+   lines:[['cmd','git add logout.py'],['cmd','git commit -m "Add logut"'],['@'],['out','[main 9b0e3f6] Add logut']]},
+  {do:s => { del(s.local,'C11'); add(s.local,'C11b'); s.local.refs.main = 'C11b'; },
+   lines:[['cmd','git commit --amend -m "Add logout"'],['out','[main a9c4e12] Add logout']]}]);
+
+step('reset','Undo commits',
+ "Moves your branch back to an earlier commit. --soft keeps the undone changes staged, --mixed (the default) keeps them unstaged, and --hard deletes them. The dashed commit is no longer on any branch, so Git will eventually clean it up.",
+ [{do:s => { s.local.refs.main = 'C10'; s.local.commits.C11b.orphan = true; s.stage = [['logout.py','added']]; s.wd['logout.py'] = 'added'; },
+   lines:[['cmd','git reset --soft HEAD~1'],['cmd','git status --short'],['green','A  logout.py']]},
+  {do:s => { s.stage = []; delete s.wd['logout.py']; }, lines:[['cmd','git reset --hard HEAD'],['out','HEAD is now at d2b7c55 Add rate limit']]}]);
+
+step('revert','Undo safely',
+ "The rate limit you pushed earlier is causing errors in production. git revert adds a new commit that does the opposite, without rewriting history, so it's the safe way to undo something already on GitHub.",
+ [{do:s => { del(s.local,'C11b'); add(s.local,'C12'); s.local.refs.main = 'C12'; s.marks.local = {C10:'hl'}; },
+   lines:[['cmd','git revert d2b7c55'],['out','[main 5e8a3f1] Revert "Add rate limit"'],['out',' 1 file changed, 4 deletions(-)']]},
+  {do:s => { add(s.remote,'C12'); s.remote.refs.main = 'C12'; s.local.rrefs['origin/main'] = 'C12'; },
+   fx:[{from:'local:C12', to:'remote:C12', label:K.C12.h, cls:'f-commit'}], lines:[['cmd','git push'],pushOut('C10','C12')]}]);
+
+step('rebase','Replay on top',
+ "Earlier you started a dark-mode branch. git rebase main replays its commits on top of the latest main, giving a straight history. The commits get new IDs, so don't rebase commits others already use.",
+ [{do:s => { add(s.local,'D1','D2'); s.local.refs['dark-mode'] = 'D2'; s.local.head = 'dark-mode'; },
+   lines:[['dim','# earlier: two commits on a dark-mode branch'],['cmd','git switch dark-mode']]},
+  {do:s => { del(s.local,'D1','D2'); add(s.local,'D1b','D2b'); s.local.refs['dark-mode'] = 'D2b'; },
+   fx:[{from:'local:D1', to:'local:D1b', label:K.D1b.h, cls:'f-commit'},{from:'local:D2', to:'local:D2b', label:K.D2b.h, cls:'f-commit'}],
+   lines:[['cmd','git rebase main'],['out','Successfully rebased and updated refs/heads/dark-mode.']]}]);
+
+const LAST = STEPS.length - 1;
+
+/* ================= Rendering ================= */
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function animateClass(el, cls){
+  el.classList.remove(cls); void el.getBoundingClientRect(); el.classList.add(cls);
+  el.addEventListener('animationend', () => el.classList.remove(cls), {once:true});
+}
+function release(el){
+  if(!el) return;
+  if(el.classList.contains('pending')){ el.classList.remove('pending'); animateClass(el,'land'); }
+  const k = el.dataset && el.dataset.key;
+  if(k && k.startsWith('n:') && el.ownerSVGElement){
+    el.ownerSVGElement.querySelectorAll(`[data-key^="e:${k.slice(2)}<"].pending`).forEach(e => { e.classList.remove('pending'); animateClass(e,'land'); });
+  }
+}
+function svgEl(tag, attrs={}){ const e = document.createElementNS(NS, tag); for(const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+
+const CHIP = {untracked:['c-red','U'], modified:['c-red','M'], added:['c-green','A'], 'staged-m':['c-green','M'], renamed:['c-green','R'],
+  conflict:['c-amber','!'], ignored:['c-ign','ignored'], deleted:['c-green','D'], stash:['c-amber',''], clean:['',''], plain:['','']};
+
+function renderChips(container, list, zone, pending, emptyText){
+  const existing = new Map();
+  [...container.children].forEach(c => { if(c.classList.contains('chip') && !c.classList.contains('leaving')) existing.set(c.dataset.id, c); });
+  const keep = new Set(list.map(x => x[0]));
+  existing.forEach((el,id) => { if(!keep.has(id)){ el.classList.add('leaving'); setTimeout(() => el.remove(), 320); } });
+  list.forEach(([id, st, label]) => {
+    let el = existing.get(id); const isNew = !el;
+    if(isNew){ el = document.createElement('div'); el.className = 'chip'; el.dataset.id = id; el.innerHTML = FILE_ICON + '<span></span><b class="badge"></b>'; }
+    el.querySelector('span').textContent = label || id;
+    const [cls, badge] = CHIP[st] || ['',''];
+    const prev = el.dataset.st;
+    el.classList.remove('c-red','c-green','c-amber','c-ign'); if(cls) el.classList.add(cls);
+    el.dataset.st = st; el.querySelector('.badge').textContent = badge;
+    container.appendChild(el);
+    if(isNew){ if(pending.has(zone+':'+id)) el.classList.add('pending'); else animateClass(el,'land'); }
+    else if(prev !== st && cls) animateClass(el,'flash');
+  });
+  let hint = container.querySelector('.hint');
+  if(emptyText){
+    if(!hint){ hint = document.createElement('span'); hint.className = 'hint'; hint.textContent = emptyText; }
+    if(list.length) hint.remove(); else if(!hint.isConnected) container.prepend(hint);
+  }
+}
+
+const pillW = t => Math.round(14 + t.length * 6.8);
+const LANE_Y = [118, 64];
+
+function layoutGraph(repo, zone, marks){
+  const out = {W:360, H:150, nodes:[], edges:[], refs:[], focus:null};
+  if(!repo) return out;
+  const cs = Object.values(repo.commits).sort((a,b) => a.col - b.col);
+  const P = {};
+  cs.forEach((c,i) => { P[c.id] = {x: 40 + i*64, y: LANE_Y[c.lane]}; });
+  let maxX = 0;
+  cs.forEach(c => {
+    const m = marks[c.id];
+    out.nodes.push({key:'n:'+c.id, id:c.id, c, x:P[c.id].x, y:P[c.id].y, mark:m});
+    maxX = Math.max(maxX, P[c.id].x + 20);
+    c.p.forEach(pid => {
+      if(!P[pid]) return;
+      const a = P[pid], b = P[c.id];
+      const d = a.y === b.y ? `M${a.x},${a.y} L${b.x},${b.y}` : `M${a.x},${a.y} C${a.x+34},${a.y} ${b.x-34},${b.y} ${b.x},${b.y}`;
+      out.edges.push({key:`e:${c.id}<${pid}`, id:c.id, d, alt: c.lane===1 || repo.commits[pid].lane===1, orphan: !!c.orphan});
+    });
+  });
+  const marked = cs.filter(c => marks[c.id]);
+  out.focus = marked.length ? (P[marked[0].id].x + P[marked[marked.length-1].id].x)/2 : (cs.length ? P[cs[cs.length-1].id].x : 0);
+
+  // labels
+  const labels = {};
+  const put = (cid, items) => { if(P[cid]) (labels[cid] ||= []).push(items); };
+  const head = repo.head;
+  Object.keys(repo.refs).sort((a,b) => /^(main|master)$/.test(a) ? -1 : /^(main|master)$/.test(b) ? 1 : a.localeCompare(b)).forEach(n => {
+    const items = [{text:n, cls: 'br' + (/^(main|master)$/.test(n) ? '' : ' alt')}];
+    if(zone==='local' && head === n) items.push({text:'HEAD', cls:'head'});
+    put(repo.refs[n], items);
+  });
+  if(zone==='local' && head && head.at) put(head.at, [{text:'HEAD', cls:'head'}]);
+  Object.entries(repo.rrefs || {}).forEach(([n,c]) => put(c, [{text:n, cls:'rt'}]));
+  Object.entries(repo.tags || {}).forEach(([n,c]) => put(c, [{text:n, cls:'tag'}]));
+
+  const rows = {0:[], 1:[]};
+  let maxRow0 = -1;
+  cs.forEach(c => {
+    (labels[c.id] || []).forEach(items => {
+      const ws = items.map(it => pillW(it.text));
+      const total = ws.reduce((a,b) => a+b, 0) + 4*(ws.length-1);
+      const x0 = P[c.id].x - ws[0]/2, x1 = x0 + total;
+      const R = rows[c.lane]; let r = 0;
+      while(R[r] && R[r].some(([a,b]) => x0 < b + 6 && x1 > a - 6)) r++;
+      (R[r] ||= []).push([x0, x1]);
+      const y = c.lane ? P[c.id].y - 14 - 18 - r*21 : P[c.id].y + 14 + r*21;
+      if(!c.lane) maxRow0 = Math.max(maxRow0, r);
+      let x = x0;
+      items.forEach((it,i) => { out.refs.push({key:'r:'+it.text, text:it.text, cls:it.cls, x, y, w:ws[i]}); x += ws[i] + 4; });
+      maxX = Math.max(maxX, x1 + 12);
+    });
+  });
+  out.W = Math.max(340, Math.ceil(maxX));
+  out.H = Math.max(150, LANE_Y[0] + 14 + (maxRow0 + 1)*21 + 6);
+  return out;
+}
+
+function reconcile(layer, items, create, update, pending, zone){
+  const ex = new Map();
+  [...layer.children].forEach(c => { if(!c.classList.contains('gone')) ex.set(c.dataset.key, c); });
+  const keys = new Set(items.map(i => i.key));
+  ex.forEach((el,k) => { if(!keys.has(k)){ el.classList.add('gone'); setTimeout(() => el.remove(), 320); } });
+  items.forEach(it => {
+    let el = ex.get(it.key);
+    if(!el){
+      el = create(it); el.dataset.key = it.key; update(el, it); layer.appendChild(el);
+      if(pending.has(zone+':'+it.id)) el.classList.add('pending'); else animateClass(el,'land');
+    } else update(el, it);
+  });
+}
+function setCls(el, base){ const keep = ['land','pending','gone'].filter(c => el.classList.contains(c)); el.setAttribute('class', [...base, ...keep].filter(Boolean).join(' ')); }
+
+function renderGraph(svg, wrap, repo, zone, pending, marks){
+  if(!svg._l){ svg._l = {e:svgEl('g'), n:svgEl('g'), r:svgEl('g')}; svg.append(svg._l.e, svg._l.n, svg._l.r); }
+  const G = layoutGraph(repo, zone, marks);
+  svg.setAttribute('viewBox', `0 0 ${G.W} ${G.H}`); svg.setAttribute('width', G.W); svg.setAttribute('height', G.H);
+  reconcile(svg._l.e, G.edges, () => svgEl('path'), (el,it) => {
+    el.setAttribute('d', it.d); el.style.d = `path("${it.d}")`;
+    setCls(el, ['edge', it.alt && 'alt', it.orphan && 'orphan']);
+  }, pending, zone);
+  reconcile(svg._l.n, G.nodes, () => { const g = svgEl('g'); g.append(svgEl('circle',{r:13,class:'ring'}), svgEl('circle',{r:8,class:'dot'}), svgEl('title')); return g; },
+    (el,it) => {
+      el.style.transform = `translate(${it.x}px,${it.y}px)`;
+      setCls(el, ['node', it.c.lane===1 && 'alt', it.c.orphan && 'orphan', it.mark && 'm-'+it.mark]);
+      el.querySelector('title').textContent = it.c.h + '  ' + it.c.m;
+    }, pending, zone);
+  reconcile(svg._l.r, G.refs, () => { const g = svgEl('g'); g.append(svgEl('rect',{height:18,rx:9}), svgEl('text',{y:12.6,'text-anchor':'middle'})); return g; },
+    (el,it) => {
+      setCls(el, ['ref', ...it.cls.split(' ')]);
+      el.querySelector('rect').setAttribute('width', it.w);
+      const t = el.querySelector('text'); t.setAttribute('x', it.w/2); t.textContent = it.text;
+      el.style.transform = `translate(${it.x}px,${it.y}px)`;
+    }, pending, zone);
+  if(G.focus != null) wrap.scrollLeft = Math.max(0, G.focus - wrap.clientWidth*0.6);
+}
+
+function render(st, pending = new Set()){
+  $('termBranch').textContent = !st.local ? '' : typeof st.local.head === 'string' ? st.local.head : 'detached';
+
+  $('zLocal').classList.toggle('off', !st.local);
+  $('localTag').textContent = !st.local ? '' : st.local.note === 'bisecting' ? 'detached HEAD, bisecting' : st.local.note === 'merging' ? 'merge in progress' : '.git';
+  renderGraph($('gLocal'), $('wLocal'), st.local, 'local', pending, st.marks.local);
+  const le = $('localEmpty');
+  le.textContent = !st.local ? 'Not a Git repository yet' : (Object.keys(st.local.commits).length ? '' : 'No commits yet');
+  le.hidden = !le.textContent;
+
+  $('zRemote').classList.toggle('off', !st.remote);
+  $('remoteTag').textContent = st.remote ? 'origin' + (st.remote.note ? ', ' + st.remote.note : '') : '';
+  renderGraph($('gRemote'), $('wRemote'), st.remote, 'remote', pending, st.marks.remote);
+  const re = $('remoteEmpty');
+  re.textContent = !st.remote ? 'Not connected to GitHub yet' : (Object.keys(st.remote.commits).length ? '' : 'Empty repo at github.com/meera/app');
+  re.hidden = !re.textContent;
+
+  renderChips($('stageChips'), st.stage, 'stage', pending, 'Nothing staged');
+  const hasStash = st.stash !== undefined;
+  $('zStash').hidden = !hasStash; $('pair').classList.toggle('solo', !hasStash);
+  renderChips($('stashChips'), st.stash || [], 'stash', pending, 'No stashed changes');
+  renderChips($('wdChips'), FILES.filter(f => st.wd[f]).map(f => [f, st.wd[f]]), 'wd', pending);
+}
+
+function lookup(key){
+  const i = key.indexOf(':'), zone = key.slice(0,i), id = key.slice(i+1);
+  if(zone === 'wd' || zone === 'stage' || zone === 'stash')
+    return $(zone + 'Chips').querySelector(`.chip[data-id="${id}"]:not(.leaving)`);
+  const svg = zone === 'local' ? $('gLocal') : $('gRemote');
+  return svg.querySelector(`[data-key="n:${id}"]:not(.gone)`);
+}
+function rectOf(el){ if(!el) return null; if(el.querySelector && el.querySelector('.dot')) return el.querySelector('.dot').getBoundingClientRect(); return el.getBoundingClientRect(); }
+
+function fly(fromRect, toEl, label, cls, delay){
+  if(!toEl) return;
+  if(!fromRect || reduced){ release(toEl); return; }
+  const to = rectOf(toEl);
+  const fx = fromRect.left + fromRect.width/2, fy = fromRect.top + fromRect.height/2;
+  const dx = to.left + to.width/2 - fx, dy = to.top + to.height/2 - fy;
+  const f = document.createElement('div');
+  f.className = 'flyer ' + cls; f.style.left = fx + 'px'; f.style.top = fy + 'px';
+  const s = document.createElement('span'); s.textContent = label; f.appendChild(s);
+  document.body.appendChild(f);
+  const a = f.animate([
+    {transform:'translate(0,0) scale(.8)', opacity:0},
+    {transform:'translate(0,0) scale(1)', opacity:1, offset:.12},
+    {transform:`translate(${dx}px,${dy}px) scale(.85)`, opacity:1, offset:.92},
+    {transform:`translate(${dx}px,${dy}px) scale(.6)`, opacity:0}
+  ], {duration:820, delay, easing:'cubic-bezier(.55,0,.25,1)', fill:'both'});
+  a.onfinish = () => { f.remove(); release(toEl); };
+}
+
+/* ================= Terminal ================= */
+const term = $('term');
+const cursor = document.createElement('span'); cursor.className = 'cursor';
+function addLine(kind, text){
+  const d = document.createElement('div'); d.className = 'l-' + kind;
+  if(kind === 'cmd'){ const p = document.createElement('span'); p.className = 'p'; p.textContent = '$ '; d.append(p, document.createTextNode('')); }
+  else d.textContent = text;
+  term.appendChild(d); term.scrollTop = term.scrollHeight; return d;
+}
+function promptLine(){ const d = addLine('cmd'); d.appendChild(cursor); term.scrollTop = term.scrollHeight; }
+async function typeLines(lines, rid, instant){
+  for(const [kind, text] of lines){
+    if(kind === '@') continue;
+    if(rid !== runId) return false;
+    const d = addLine(kind, text);
+    if(kind === 'cmd'){
+      const tn = d.childNodes[1];
+      if(instant){ tn.textContent = text; continue; }
+      d.appendChild(cursor);
+      for(let i = 1; i <= text.length; i++){ tn.textContent = text.slice(0,i); await sleep(text.length > 36 ? 13 : 24); if(rid !== runId) return false; }
+      await sleep(240);
+    } else if(!instant) await sleep(90);
+  }
+  return rid === runId;
+}
+
+/* ================= Playback ================= */
+let current = -1, runId = 0, playing = false, busy = false, autoTimer = null;
+const DWELL = 3000, PHASE_GAP = 950;
+
+async function runPhase(ph, rid){
+  const L = ph.lines;
+  let cut = L.findIndex(l => l[0] === '@');
+  if(cut < 0){ const c = L.findIndex(l => l[0] === 'cmd'); cut = c < 0 ? 0 : c; }
+  if(!(await typeLines(L.slice(0, cut + 1), rid, reduced))) return false;
+  const fx = ph.fx || [];
+  const fromRects = fx.map(f => rectOf(lookup(f.from)));
+  render(ph.state, new Set(fx.map(f => f.to)));
+  fx.forEach((f,i) => fly(fromRects[i], lookup(f.to), f.label, f.cls, i*110));
+  return await typeLines(L.slice(cut + 1), rid, reduced);
+}
+
+async function goTo(i, animate){
+  if(i < 0 || i > LAST) return;
+  const rid = ++runId; clearTimeout(autoTimer); busy = true;
+  current = i; updateUI();
+  const step = STEPS[i];
+  term.textContent = '';
+  if(!animate){
+    step.phases.forEach(ph => ph.lines.forEach(([k,t]) => { if(k !== '@'){ const d = addLine(k,t); if(k === 'cmd') d.childNodes[1].textContent = t; } }));
+    render(step.phases[step.phases.length-1].state);
+  } else {
+    for(let k = 0; k < step.phases.length; k++){
+      if(k > 0){ await sleep(PHASE_GAP); if(rid !== runId) return; }
+      if(!(await runPhase(step.phases[k], rid))) return;
+    }
+  }
+  if(rid !== runId) return;
+  promptLine(); busy = false; updatePlay();
+  if(playing){
+    if(current < LAST) autoTimer = setTimeout(() => { if(rid === runId && playing) goTo(current + 1, true); }, DWELL);
+    else setPlaying(false);
+  }
+}
+
+function resetToStart(){
+  runId++; clearTimeout(autoTimer); busy = false; current = -1;
+  term.textContent = ''; promptLine(); render(S0); updateUI();
+}
+function setPlaying(v){
+  playing = v;
+  if(v){
+    if(current >= LAST){ resetToStart(); playing = true; setTimeout(() => playing && goTo(0, true), 500); }
+    else if(!busy) goTo(current + 1, true);
+  } else clearTimeout(autoTimer);
+  updatePlay();
+}
+const ICONS = {
+  play:'<path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/>',
+  pause:'<rect x="6.5" y="5" width="4" height="14" rx="1"/><rect x="13.5" y="5" width="4" height="14" rx="1"/>',
+  replay:'<path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/>'
+};
+function updatePlay(){
+  const mode = playing ? 'pause' : (current >= LAST && !busy ? 'replay' : 'play');
+  $('playIcon').innerHTML = ICONS[mode];
+  $('playLabel').textContent = mode === 'pause' ? 'Pause' : mode === 'replay' ? 'Replay' : 'Play';
+}
+
+/* ---------- Sidebar ---------- */
+const list = $('stepList'), nav = $('nav');
+const stepItems = [];
+STEPS.forEach((s, i) => {
+  if(s.first){
+    const h = document.createElement('li'); h.className = 'sec';
+    h.innerHTML = `<b>${s.section.level}</b><span>${s.section.title}</span>`;
+    list.appendChild(h);
+  }
+  const li = document.createElement('li'); li.className = 'step';
+  const b = document.createElement('button');
+  b.innerHTML = `<span class="num">${i+1}</span><span style="min-width:0"><span class="cmd">${s.name.startsWith('.') ? s.name : '<i>git</i> ' + s.name}</span><span class="desc">${s.short}</span></span>`;
+  b.addEventListener('click', () => { const fwd = i === current + 1 && !busy; playing = false; goTo(i, fwd); updatePlay(); });
+  li.appendChild(b); list.appendChild(li); stepItems.push(li);
+});
+
+function updateUI(){
+  stepItems.forEach((li, i) => {
+    li.classList.toggle('active', i === current);
+    li.classList.toggle('done', i < current);
+    li.querySelector('button').setAttribute('aria-current', i === current ? 'step' : 'false');
+  });
+  if(current < 0){
+    $('level').innerHTML = '';
+    $('explain').textContent = 'A small Python project folder, not using Git yet. Press Play to follow it from installing Git to a tidy team history, or pick any command from the list.';
+  } else {
+    const s = STEPS[current];
+    $('level').innerHTML = `<b>${s.section.level}</b>, ${s.section.title.toLowerCase()}`;
+    $('explain').textContent = s.explain;
+  }
+  $('count').textContent = `${Math.max(current+1,0)} of ${STEPS.length}`;
+  $('prevBtn').disabled = current <= 0; $('nextBtn').disabled = current >= LAST;
+  $('prevBtn').style.opacity = current <= 0 ? .4 : 1; $('nextBtn').style.opacity = current >= LAST ? .4 : 1;
+  const li = stepItems[current];
+  if(li){
+    const beh = reduced ? 'auto' : 'smooth';
+    if(nav.scrollWidth > nav.clientWidth + 2) nav.scrollTo({left: li.offsetLeft - (nav.clientWidth - li.offsetWidth)/2, behavior: beh});
+    else if(nav.scrollHeight > nav.clientHeight + 2) nav.scrollTo({top: li.offsetTop - nav.offsetTop - (nav.clientHeight - li.offsetHeight)/2, behavior: beh});
+  }
+  updatePlay();
+}
+
+$('playBtn').addEventListener('click', () => setPlaying(!playing));
+$('nextBtn').addEventListener('click', () => { playing = false; if(current < LAST) goTo(current + 1, !busy); updatePlay(); });
+$('prevBtn').addEventListener('click', () => { playing = false; if(current > 0) goTo(current - 1, false); updatePlay(); });
+document.addEventListener('keydown', e => {
+  if(e.target.closest && e.target.closest('button')) return;
+  if(e.key === 'ArrowRight') $('nextBtn').click();
+  else if(e.key === 'ArrowLeft') $('prevBtn').click();
+  else if(e.key === ' '){ e.preventDefault(); setPlaying(!playing); }
+});
+
+if('scrollRestoration' in history) history.scrollRestoration = 'manual';
+window.scrollTo(0,0);
+resetToStart();
+setTimeout(() => { if(current < 0) setPlaying(true); }, 900);
+})();
+</script>
+</body>
+</html>
